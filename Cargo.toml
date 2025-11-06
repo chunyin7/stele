@@ -4,3 +4,12 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+chrono = "0.4.42"
+global-hotkey = "0.7"
+gpui = { version = "*" }
+objc2 = "0.6.3"
+objc2-app-kit = { version = "=0.3.1", features = [
+    "NSPasteboard",
+] }
+objc2-foundation = { version = "=0.3.1" }
+dispatch2 = { version = "0.3", default-features = false, features = ["alloc", "objc2"] }
