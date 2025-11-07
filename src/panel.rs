@@ -7,5 +7,7 @@ pub struct Panel {
 }
 
 impl Panel {
-    pub fn new(cx: &mut App) -> Self {}
+    pub fn new(cx: &mut App) -> Self {
+        Self {}
+    }
 }
