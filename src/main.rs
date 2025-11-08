@@ -6,7 +6,7 @@ use global_hotkey::{
 };
 use gpui::{App, Application};
 
-use crate::{models::History, monitor::ClipboardMonitor};
+use crate::{models::History, monitor::ClipboardMonitor, panel::Panel};
 
 mod models;
 mod monitor;
@@ -24,9 +24,11 @@ fn main() {
         let hotkey = HotKey::new(Some(Modifiers::META | Modifiers::SHIFT), Code::KeyV);
         manager.register(hotkey).unwrap();
 
+        let panel = Panel::new(cx);
+
         GlobalHotKeyEvent::set_event_handler(Some(move |event: GlobalHotKeyEvent| {
             if event.state == HotKeyState::Pressed {
-                todo!("show panel");
+                panel.toggle(cx);
             }
         }));
     });
