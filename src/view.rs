@@ -1,6 +1,6 @@
 use gpui::{
     Context, CursorStyle, InteractiveElement, IntoElement, ParentElement, Render, Styled, Window,
-    div, hsla, px, uniform_list,
+    div, hsla, uniform_list,
 };
 use std::ops::Range;
 
@@ -48,11 +48,12 @@ impl Render for View {
                                 } else {
                                     content
                                 };
+                                let timestamp =
+                                    entry.timestamp.format("%Y-%m-%d %H:%M:%S").to_string();
                                 div()
                                     .py_1()
                                     .px_2()
-                                    .flex()
-                                    .items_center()
+                                    .flex_col()
                                     .w_full()
                                     .rounded_lg()
                                     .hover(|style| {
@@ -61,6 +62,9 @@ impl Render for View {
                                             .cursor(CursorStyle::PointingHand)
                                     })
                                     .child(content)
+                                    .child(
+                                        div().text_color(hsla(0.0, 0.0, 0.9, 0.8)).child(timestamp),
+                                    )
                             })
                             .collect()
                     }),
