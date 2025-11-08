@@ -1,6 +1,6 @@
 use gpui::{
-    Context, InteractiveElement, IntoElement, ParentElement, Render, Styled, Window, div, hsla, px,
-    uniform_list,
+    Context, CursorStyle, InteractiveElement, IntoElement, ParentElement, Render, Styled, Window,
+    div, hsla, px, uniform_list,
 };
 use std::ops::Range;
 
@@ -11,10 +11,6 @@ pub struct View {
 }
 
 impl View {
-    pub const MIN_HEIGHT: f32 = 100.0;
-    pub const MAX_HEIGHT: f32 = 300.0;
-    pub const ROW_HEIGHT: f32 = 36.0;
-
     pub fn new() -> Self {
         Self {
             snapshot: Vec::new(),
@@ -25,32 +21,19 @@ impl View {
         let locked = history.lock().unwrap();
         self.snapshot = locked.clone();
     }
-
-    pub fn panel_height_for_len(len: usize) -> f32 {
-        let base = if len == 0 {
-            Self::ROW_HEIGHT
-        } else {
-            (len as f32) * Self::ROW_HEIGHT
-        };
-
-        base.clamp(Self::MIN_HEIGHT, Self::MAX_HEIGHT)
-    }
 }
 
 impl Render for View {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let len = self.snapshot.len();
-        let panel_height = Self::panel_height_for_len(len);
-
         div()
             .flex_col()
             .gap_2()
-            .h(px(panel_height))
-            .p_4()
-            .text_color(hsla(0.0, 0.0, 0.95, 1.0))
+            .h_full()
+            .w_full()
+            .text_color(hsla(0.0, 0.0, 0.9, 1.0))
             .bg(hsla(0.0, 0.0, 0.08, 0.5))
             .text_xs()
-            .w_full()
+            .p_2()
             .child(
                 uniform_list(
                     "history",
@@ -60,23 +43,29 @@ impl Render for View {
                             .map(|i| {
                                 let entry = this.snapshot.get(i).unwrap();
                                 let content = entry.content.clone();
-                                let content = if content.len() > 15 {
-                                    format!("{}...", &content[0..15])
+                                let content = if content.len() > 25 {
+                                    format!("{}...", &content[0..25])
                                 } else {
                                     content
                                 };
                                 div()
-                                    .h(px(Self::ROW_HEIGHT))
-                                    .rounded_sm()
-                                    .hover(|style| style.bg(hsla(0.0, 0.0, 0.15, 0.5)))
+                                    .py_1()
+                                    .px_2()
                                     .flex()
                                     .items_center()
-                                    .child(format!("{content}"))
+                                    .w_full()
+                                    .rounded_lg()
+                                    .hover(|style| {
+                                        style
+                                            .bg(hsla(0.0, 0.0, 0.6, 0.1))
+                                            .cursor(CursorStyle::PointingHand)
+                                    })
+                                    .child(content)
                             })
                             .collect()
                     }),
                 )
-                .flex_grow(),
+                .h_full(),
             )
     }
 }
