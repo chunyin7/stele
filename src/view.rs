@@ -1,7 +1,10 @@
+use dispatch2::run_on_main;
 use gpui::{
-    Context, CursorStyle, InteractiveElement, IntoElement, ParentElement, Render, Styled, Window,
-    div, hsla, uniform_list,
+    Context, CursorStyle, InteractiveElement, IntoElement, ParentElement, Render,
+    StatefulInteractiveElement, Styled, Window, div, hsla, uniform_list,
 };
+use objc2_app_kit::{NSPasteboard, NSPasteboardTypeString};
+use objc2_foundation::NSString;
 use std::ops::Range;
 
 use crate::models::{ClipboardEntry, History};
@@ -21,6 +24,17 @@ impl View {
         let locked = history.lock().unwrap();
         self.snapshot = locked.clone();
     }
+
+    fn copy_entry_to_clipboard(&self, entry: ClipboardEntry) {
+        let content = entry.content.clone();
+
+        run_on_main(move |_mtm| unsafe {
+            let pasteboard = NSPasteboard::generalPasteboard();
+            pasteboard.clearContents();
+            let nsstring = NSString::from_str(&content);
+            pasteboard.setString_forType(&nsstring, NSPasteboardTypeString);
+        })
+    }
 }
 
 impl Render for View {
@@ -38,7 +52,7 @@ impl Render for View {
                 uniform_list(
                     "history",
                     self.snapshot.len(),
-                    cx.processor(|this, range: Range<usize>, _window, _cx| {
+                    cx.processor(|this, range: Range<usize>, _window, cx| {
                         range
                             .map(|i| {
                                 let entry = this.snapshot.get(i).unwrap();
@@ -55,6 +69,12 @@ impl Render for View {
                                     .px_2()
                                     .flex_col()
                                     .w_full()
+                                    .id(i)
+                                    .on_click(cx.listener(move |this, _event, window, _cx| {
+                                        let entry = this.snapshot.get(i).unwrap();
+                                        this.copy_entry_to_clipboard(entry.clone());
+                                        window.remove_window();
+                                    }))
                                     .rounded_lg()
                                     .hover(|style| {
                                         style

@@ -23,7 +23,7 @@ impl Panel {
     }
 
     fn open_window(cx: &mut App, history: History) -> WindowHandle<View> {
-        let mouse_pos = run_on_main(|mtm| unsafe { NSEvent::mouseLocation() });
+        let mouse_pos = run_on_main(|_mtm| unsafe { NSEvent::mouseLocation() });
 
         let displays = cx.displays();
         let active = displays.iter().find(move |display| {
@@ -98,28 +98,5 @@ impl Panel {
             view.update_snapshot(history);
             window.refresh();
         });
-    }
-
-    pub fn position_at_(&mut self, cx: &mut App) -> Option<(f64, f64)> {
-        let mouse_pos = run_on_main(|mtm| unsafe { NSEvent::mouseLocation() });
-
-        let displays = cx.displays();
-        let active = displays.iter().find(move |display| {
-            let bounds = display.bounds();
-            mouse_pos.x >= bounds.origin.x.to_f64()
-                && mouse_pos.x <= (bounds.origin.x + bounds.size.width).to_f64()
-                && mouse_pos.y >= bounds.origin.y.to_f64()
-                && mouse_pos.y <= (bounds.origin.y + bounds.size.height).to_f64()
-        });
-
-        if let Some(display) = active {
-            // appkit gives relative to bottom of screen, gpui expects relative to top of screen
-            let bounds = display.bounds();
-            let flipped_y =
-                2.0 * bounds.origin.y.to_f64() + bounds.size.height.to_f64() - mouse_pos.y;
-            Some((mouse_pos.x, flipped_y))
-        } else {
-            None
-        }
     }
 }
