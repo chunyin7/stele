@@ -40,13 +40,21 @@ impl ClipboardMonitor {
                         if current_change_count != last_change_count {
                             if let Some(content) = get_pasteboard_content() {
                                 let mut history = history.lock().unwrap();
-                                history.insert(
-                                    0,
-                                    ClipboardEntry {
-                                        content,
-                                        timestamp: Local::now(),
-                                    },
-                                );
+                                if let Some(i) =
+                                    history.iter().position(|entry| entry.content == content)
+                                {
+                                    let mut old = history.remove(i);
+                                    old.timestamp = Local::now();
+                                    history.insert(0, old);
+                                } else {
+                                    history.insert(
+                                        0,
+                                        ClipboardEntry {
+                                            content,
+                                            timestamp: Local::now(),
+                                        },
+                                    );
+                                }
                                 if history.len() > 20 {
                                     history.truncate(20);
                                 }
