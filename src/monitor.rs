@@ -1,9 +1,16 @@
-use crate::models::{ClipboardEntry, History};
+use crate::models::{ClipboardEntry, ClipboardItem, History};
 use chrono::Local;
 use dispatch2::run_on_main;
-use gpui::{App, AsyncApp};
-use objc2_app_kit::{NSPasteboard, NSPasteboardTypeString};
-use std::time::Duration;
+use gpui::{App, AsyncApp, ImageFormat, http_client::Url};
+use objc2_app_kit::{
+    NSPasteboard, NSPasteboardType, NSPasteboardTypeFileURL, NSPasteboardTypePNG,
+    NSPasteboardTypeString, NSPasteboardTypeTIFF, NSPasteboardTypeURL,
+};
+use objc2_foundation::NSURL;
+use std::{path::PathBuf, time::Duration};
+
+const NSPASTEBOARD_TYPE_JPEG: &str = "public.jpeg";
+const NSPASTEBOARD_TYPE_GIF: &str = "com.compuserve.gif";
 
 fn get_pasteboard_change_count() -> isize {
     run_on_main(|_mtm| unsafe { NSPasteboard::generalPasteboard().changeCount() })
@@ -14,6 +21,91 @@ fn get_pasteboard_content() -> Option<String> {
         NSPasteboard::generalPasteboard()
             .stringForType(NSPasteboardTypeString)
             .map(|ns_string| ns_string.to_string())
+    })
+}
+
+fn get_pasteboard_items() -> Option<Vec<ClipboardItem>> {
+    run_on_main(|_mtm| {
+        let items = unsafe { NSPasteboard::generalPasteboard().pasteboardItems() };
+
+        if let Some(items) = items {
+            let collected = items
+                .iter()
+                .flat_map(|item| {
+                    unsafe { item.types() }
+                        .iter()
+                        .filter_map(move |t| {
+                            let t: &NSPasteboardType = t.as_ref();
+                            if unsafe { t == NSPasteboardTypeString } {
+                                if let Some(ns_string) =
+                                    unsafe { item.stringForType(NSPasteboardTypeString) }
+                                {
+                                    Some(ClipboardItem::Text(ns_string.to_string()))
+                                } else {
+                                    None
+                                }
+                            } else if t == unsafe { NSPasteboardTypePNG } {
+                                if let Some(ns_data) =
+                                    unsafe { item.dataForType(NSPasteboardTypePNG) }
+                                {
+                                    Some(ClipboardItem::Image {
+                                        bytes: ns_data.to_vec(),
+                                        format: ImageFormat::Png,
+                                    })
+                                } else {
+                                    None
+                                }
+                            } else if t == unsafe { NSPasteboardTypeTIFF } {
+                                if let Some(ns_data) =
+                                    unsafe { item.dataForType(NSPasteboardTypeTIFF) }
+                                {
+                                    Some(ClipboardItem::Image {
+                                        bytes: ns_data.to_vec(),
+                                        format: ImageFormat::Tiff,
+                                    })
+                                } else {
+                                    None
+                                }
+                            } else if t == unsafe { NSPasteboardTypeURL } {
+                                if let Some(ns_string) =
+                                    unsafe { item.stringForType(NSPasteboardTypeURL) }
+                                {
+                                    match Url::parse(&ns_string.to_string()) {
+                                        Ok(url) => Some(ClipboardItem::Url(url)),
+                                        Err(_) => None,
+                                    }
+                                } else {
+                                    None
+                                }
+                            } else if t == unsafe { NSPasteboardTypeFileURL } {
+                                if let Some(ns_string) =
+                                    unsafe { item.stringForType(NSPasteboardTypeFileURL) }
+                                {
+                                    if let Some(url) = unsafe { NSURL::URLWithString(&ns_string) } {
+                                        if let Some(path) = unsafe { url.path() } {
+                                            Some(ClipboardItem::File(PathBuf::from(
+                                                path.to_string(),
+                                            )))
+                                        } else {
+                                            None
+                                        }
+                                    } else {
+                                        None
+                                    }
+                                } else {
+                                    None
+                                }
+                            } else {
+                                None
+                            }
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .collect();
+            Some(collected)
+        } else {
+            None
+        }
     })
 }
 
