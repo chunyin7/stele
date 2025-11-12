@@ -1,10 +1,13 @@
 use dispatch2::run_on_main;
 use gpui::{
-    Context, CursorStyle, InteractiveElement, IntoElement, ParentElement, Render,
+    Context, CursorStyle, ImageFormat, InteractiveElement, IntoElement, ParentElement, Render,
     StatefulInteractiveElement, Styled, Window, div, hsla, uniform_list,
 };
-use objc2_app_kit::{NSPasteboard, NSPasteboardTypeString};
-use objc2_foundation::NSString;
+use objc2_app_kit::{
+    NSPasteboard, NSPasteboardTypeFileURL, NSPasteboardTypePNG, NSPasteboardTypeString,
+    NSPasteboardTypeTIFF, NSPasteboardTypeURL,
+};
+use objc2_foundation::{NSData, NSString};
 use std::ops::Range;
 
 use crate::models::{ClipboardEntry, ClipboardItem, History};
@@ -49,6 +52,40 @@ fn render_item(item: ClipboardItem) -> impl IntoElement {
     }
 }
 
+fn copy_entry_to_clipboard(entry: ClipboardEntry) {
+    let items = entry.items.clone();
+
+    run_on_main(move |_mtm| {
+        let pasteboard = unsafe { NSPasteboard::generalPasteboard() };
+        unsafe { pasteboard.clearContents() };
+        items.iter().for_each(|item| match item {
+            ClipboardItem::Text(text) => {
+                let nsstring = NSString::from_str(text);
+                unsafe { pasteboard.setString_forType(&nsstring, NSPasteboardTypeString) };
+            }
+            ClipboardItem::Url(url) => {
+                let nsstring = NSString::from_str(url.as_str());
+                unsafe { pasteboard.setString_forType(&nsstring, NSPasteboardTypeURL) };
+            }
+            ClipboardItem::Image { bytes, format } => {
+                let nsdata = NSData::from_vec(bytes.clone());
+                let nsimagetype = match format {
+                    ImageFormat::Png => Some(unsafe { NSPasteboardTypePNG }),
+                    ImageFormat::Tiff => Some(unsafe { NSPasteboardTypeTIFF }),
+                    _ => None,
+                };
+                if let Some(nsimagetype) = nsimagetype {
+                    unsafe { pasteboard.setData_forType(Some(&nsdata), nsimagetype) };
+                }
+            }
+            ClipboardItem::File(path) => {
+                let nsstring = NSString::from_str(path.to_str().unwrap());
+                unsafe { pasteboard.setString_forType(&nsstring, NSPasteboardTypeFileURL) };
+            }
+        });
+    })
+}
+
 impl View {
     pub fn new() -> Self {
         Self {
@@ -59,17 +96,6 @@ impl View {
     pub fn update_snapshot(&mut self, history: History) {
         let locked = history.lock().unwrap();
         self.snapshot = locked.clone();
-    }
-
-    fn copy_entry_to_clipboard(&self, entry: ClipboardEntry) {
-        let content = entry.content.clone();
-
-        run_on_main(move |_mtm| unsafe {
-            let pasteboard = NSPasteboard::generalPasteboard();
-            pasteboard.clearContents();
-            let nsstring = NSString::from_str(&content);
-            pasteboard.setString_forType(&nsstring, NSPasteboardTypeString);
-        })
     }
 }
 
@@ -103,7 +129,7 @@ impl Render for View {
                                     .id(i)
                                     .on_click(cx.listener(move |this, _event, window, _cx| {
                                         let entry = this.snapshot.get(i).unwrap();
-                                        this.copy_entry_to_clipboard(entry.clone());
+                                        copy_entry_to_clipboard(entry.clone());
                                         window.remove_window();
                                     }))
                                     .rounded_lg()
@@ -113,7 +139,7 @@ impl Render for View {
                                             .cursor(CursorStyle::PointingHand)
                                     })
                                     .child(uniform_list(
-                                        i,
+                                        "items",
                                         items.len(),
                                         cx.processor(
                                             move |_this, range: Range<usize>, _window, _cx| {
