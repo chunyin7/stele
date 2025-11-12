@@ -13,6 +13,42 @@ pub struct View {
     snapshot: Vec<ClipboardEntry>,
 }
 
+fn render_item(item: ClipboardItem) -> impl IntoElement {
+    match item {
+        ClipboardItem::Text(text) => {
+            let text = if text.len() > 25 {
+                format!("{}...", &text[0..25])
+            } else {
+                text.clone()
+            };
+
+            div().child(text)
+        }
+        ClipboardItem::Url(url) => {
+            let url_string = url.to_string();
+            let url_string = if url_string.len() > 25 {
+                format!("{}...", &url_string[0..25])
+            } else {
+                url_string
+            };
+
+            div()
+                .underline()
+                .text_color(hsla(240.0, 0.93, 0.83, 1.0))
+                .text_decoration_color(hsla(240.0, 0.93, 0.83, 1.0))
+                .child(url_string)
+        }
+        ClipboardItem::File(path) => {
+            // todo
+            div()
+        }
+        ClipboardItem::Image { bytes, format } => {
+            // todo
+            div()
+        }
+    }
+}
+
 impl View {
     pub fn new() -> Self {
         Self {
@@ -34,42 +70,6 @@ impl View {
             let nsstring = NSString::from_str(&content);
             pasteboard.setString_forType(&nsstring, NSPasteboardTypeString);
         })
-    }
-
-    fn render_item(&self, item: &ClipboardItem) -> impl IntoElement {
-        match item {
-            ClipboardItem::Text(text) => {
-                let text = if text.len() > 25 {
-                    format!("{}...", &text[0..25])
-                } else {
-                    text.clone()
-                };
-
-                div().child(text)
-            }
-            ClipboardItem::Url(url) => {
-                let url_string = url.to_string();
-                let url_string = if url_string.len() > 25 {
-                    format!("{}...", &url_string[0..25])
-                } else {
-                    url_string
-                };
-
-                div()
-                    .underline()
-                    .text_color(hsla(240.0, 0.93, 0.83, 1.0))
-                    .text_decoration_color(hsla(240.0, 0.93, 0.83, 1.0))
-                    .child(url_string)
-            }
-            ClipboardItem::File(path) => {
-                // todo
-                div()
-            }
-            ClipboardItem::Image { bytes, format } => {
-                // todo
-                div()
-            }
-        }
     }
 }
 
@@ -113,16 +113,15 @@ impl Render for View {
                                             .cursor(CursorStyle::PointingHand)
                                     })
                                     .child(uniform_list(
-                                        "items",
+                                        i,
                                         items.len(),
-                                        cx.processor(|this, range: Range<usize>, _window, _cx| {
-                                            range
-                                                .map(|j| {
-                                                    let item = items.get(j).unwrap();
-                                                    this.render_item(item)
-                                                })
-                                                .collect()
-                                        }),
+                                        cx.processor(
+                                            move |_this, range: Range<usize>, _window, _cx| {
+                                                range
+                                                    .map(|j| render_item(items[j].clone()))
+                                                    .collect()
+                                            },
+                                        ),
                                     ))
                                     .child(
                                         div().text_color(hsla(0.0, 0.0, 0.9, 0.8)).child(timestamp),
