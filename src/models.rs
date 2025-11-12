@@ -6,7 +6,7 @@ use std::{
 use chrono::{DateTime, Local};
 use gpui::{ImageFormat, http_client::Url};
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum ClipboardItem {
     Text(String),
     Url(Url),
@@ -16,7 +16,6 @@ pub enum ClipboardItem {
 
 #[derive(Clone)]
 pub struct ClipboardEntry {
-    pub content: String,
     pub timestamp: DateTime<Local>,
     pub items: Vec<ClipboardItem>,
 }

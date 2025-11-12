@@ -7,7 +7,7 @@ use objc2_app_kit::{NSPasteboard, NSPasteboardTypeString};
 use objc2_foundation::NSString;
 use std::ops::Range;
 
-use crate::models::{ClipboardEntry, History};
+use crate::models::{ClipboardEntry, ClipboardItem, History};
 
 pub struct View {
     snapshot: Vec<ClipboardEntry>,
@@ -35,6 +35,42 @@ impl View {
             pasteboard.setString_forType(&nsstring, NSPasteboardTypeString);
         })
     }
+
+    fn render_item(&self, item: &ClipboardItem) -> impl IntoElement {
+        match item {
+            ClipboardItem::Text(text) => {
+                let text = if text.len() > 25 {
+                    format!("{}...", &text[0..25])
+                } else {
+                    text.clone()
+                };
+
+                div().child(text)
+            }
+            ClipboardItem::Url(url) => {
+                let url_string = url.to_string();
+                let url_string = if url_string.len() > 25 {
+                    format!("{}...", &url_string[0..25])
+                } else {
+                    url_string
+                };
+
+                div()
+                    .underline()
+                    .text_color(hsla(240.0, 0.93, 0.83, 1.0))
+                    .text_decoration_color(hsla(240.0, 0.93, 0.83, 1.0))
+                    .child(url_string)
+            }
+            ClipboardItem::File(path) => {
+                // todo
+                div()
+            }
+            ClipboardItem::Image { bytes, format } => {
+                // todo
+                div()
+            }
+        }
+    }
 }
 
 impl Render for View {
@@ -56,12 +92,7 @@ impl Render for View {
                         range
                             .map(|i| {
                                 let entry = this.snapshot.get(i).unwrap();
-                                let content = entry.content.clone();
-                                let content = if content.len() > 25 {
-                                    format!("{}...", &content[0..25])
-                                } else {
-                                    content
-                                };
+                                let items = entry.items.clone();
                                 let timestamp =
                                     entry.timestamp.format("%Y-%m-%d %H:%M:%S").to_string();
                                 div()
@@ -81,7 +112,18 @@ impl Render for View {
                                             .bg(hsla(0.0, 0.0, 0.6, 0.1))
                                             .cursor(CursorStyle::PointingHand)
                                     })
-                                    .child(content)
+                                    .child(uniform_list(
+                                        "items",
+                                        items.len(),
+                                        cx.processor(|this, range: Range<usize>, _window, _cx| {
+                                            range
+                                                .map(|j| {
+                                                    let item = items.get(j).unwrap();
+                                                    this.render_item(item)
+                                                })
+                                                .collect()
+                                        }),
+                                    ))
                                     .child(
                                         div().text_color(hsla(0.0, 0.0, 0.9, 0.8)).child(timestamp),
                                     )

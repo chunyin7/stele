@@ -130,10 +130,10 @@ impl ClipboardMonitor {
                             .await;
                         let current_change_count = get_pasteboard_change_count();
                         if current_change_count != last_change_count {
-                            if let Some(content) = get_pasteboard_content() {
+                            if let Some(items) = get_pasteboard_items() {
                                 let mut history = history.lock().unwrap();
                                 if let Some(i) =
-                                    history.iter().position(|entry| entry.content == content)
+                                    history.iter().position(|entry| entry.items == items)
                                 {
                                     let mut old = history.remove(i);
                                     old.timestamp = Local::now();
@@ -142,7 +142,7 @@ impl ClipboardMonitor {
                                     history.insert(
                                         0,
                                         ClipboardEntry {
-                                            content,
+                                            items,
                                             timestamp: Local::now(),
                                         },
                                     );
