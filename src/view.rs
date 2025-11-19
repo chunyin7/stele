@@ -1,14 +1,15 @@
 use dispatch2::run_on_main;
 use gpui::{
-    Context, CursorStyle, ImageFormat, InteractiveElement, IntoElement, ParentElement, Render,
-    StatefulInteractiveElement, Styled, Window, div, hsla, uniform_list,
+    Context, CursorStyle, Image, ImageFormat, ImageSource, InteractiveElement, IntoElement,
+    ParentElement, Render, StatefulInteractiveElement, Styled, Window, div, hsla, img,
+    uniform_list,
 };
 use objc2_app_kit::{
     NSPasteboard, NSPasteboardTypeFileURL, NSPasteboardTypePNG, NSPasteboardTypeString,
     NSPasteboardTypeTIFF, NSPasteboardTypeURL,
 };
 use objc2_foundation::{NSData, NSString};
-use std::ops::Range;
+use std::{ops::Range, sync::Arc};
 
 use crate::models::{ClipboardEntry, ClipboardItem, History};
 
@@ -46,8 +47,8 @@ fn render_item(item: ClipboardItem) -> impl IntoElement {
             div()
         }
         ClipboardItem::Image { bytes, format } => {
-            // todo
-            div()
+            let image = Arc::new(Image::from_bytes(format, bytes));
+            div().child(img(image))
         }
     }
 }
@@ -126,7 +127,7 @@ impl Render for View {
                                     .px_2()
                                     .flex_col()
                                     .w_full()
-                                    .id(i)
+                                    .id(("outer", i))
                                     .on_click(cx.listener(move |this, _event, window, _cx| {
                                         let entry = this.snapshot.get(i).unwrap();
                                         copy_entry_to_clipboard(entry.clone());
@@ -138,19 +139,18 @@ impl Render for View {
                                             .bg(hsla(0.0, 0.0, 0.6, 0.1))
                                             .cursor(CursorStyle::PointingHand)
                                     })
-                                    .child(uniform_list(
-                                        "items",
-                                        items.len(),
-                                        cx.processor(
-                                            move |_this, range: Range<usize>, _window, _cx| {
-                                                range
-                                                    .map(|j| render_item(items[j].clone()))
-                                                    .collect()
-                                            },
-                                        ),
-                                    ))
                                     .child(
-                                        div().text_color(hsla(0.0, 0.0, 0.9, 0.8)).child(timestamp),
+                                        div()
+                                            .flex_col()
+                                            .children(
+                                                items.iter().map(|item| render_item(item.clone())),
+                                            )
+                                            .child(
+                                                div()
+                                                    .text_color(hsla(0.0, 0.0, 0.9, 0.8))
+                                                    .child(timestamp),
+                                            )
+                                            .h_full(),
                                     )
                             })
                             .collect()
