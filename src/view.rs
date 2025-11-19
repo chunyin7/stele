@@ -48,7 +48,7 @@ fn render_item(item: ClipboardItem) -> impl IntoElement {
         }
         ClipboardItem::Image { bytes, format } => {
             let image = Arc::new(Image::from_bytes(format, bytes));
-            div().child(img(image))
+            div().child(img(image).size_32())
         }
     }
 }
@@ -149,8 +149,7 @@ impl Render for View {
                                                 div()
                                                     .text_color(hsla(0.0, 0.0, 0.9, 0.8))
                                                     .child(timestamp),
-                                            )
-                                            .h_full(),
+                                            ),
                                     )
                             })
                             .collect()
