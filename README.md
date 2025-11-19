@@ -29,4 +29,4 @@ when the binary is running:
 - [ ] add config settings
 - [ ] hide dock icon
 - [ ] add tray icon
-- [ ] add keyboard controls
+- [x] add keyboard controls

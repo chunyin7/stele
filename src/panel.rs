@@ -48,30 +48,39 @@ impl Panel {
             Bounds::centered(None, size(px(Self::WIDTH), px(Self::HEIGHT)), cx)
         };
 
-        cx.open_window(
-            WindowOptions {
-                titlebar: None,
-                is_movable: false,
-                kind: WindowKind::PopUp,
-                window_bounds: Some(WindowBounds::Windowed(bounds)),
-                window_background: WindowBackgroundAppearance::Blurred,
-                display_id: if let Some(display) = active {
-                    Some(display.id())
-                } else {
-                    None
+        let window = cx
+            .open_window(
+                WindowOptions {
+                    titlebar: None,
+                    is_movable: false,
+                    kind: WindowKind::PopUp,
+                    window_bounds: Some(WindowBounds::Windowed(bounds)),
+                    window_background: WindowBackgroundAppearance::Blurred,
+                    display_id: if let Some(display) = active {
+                        Some(display.id())
+                    } else {
+                        None
+                    },
+                    ..Default::default()
                 },
-                ..Default::default()
-            },
-            move |_window, cx| {
-                let history = history.clone();
-                cx.new(|_cx| {
-                    let mut view = View::new();
-                    view.update_snapshot(history.clone());
-                    view
-                })
-            },
-        )
-        .unwrap()
+                move |_window, cx| {
+                    let history = history.clone();
+                    cx.new(|cx| {
+                        let mut view = View::new(cx);
+                        view.update_snapshot(history.clone());
+                        view
+                    })
+                },
+            )
+            .unwrap();
+
+        window
+            .update(cx, |view, window, cx| {
+                window.focus(&view.focus_handle());
+            })
+            .unwrap();
+
+        window
     }
 
     pub fn hide(&mut self, cx: &mut App) {

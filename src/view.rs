@@ -1,8 +1,9 @@
 use dispatch2::run_on_main;
 use gpui::{
-    Context, CursorStyle, Image, ImageFormat, ImageSource, InteractiveElement, IntoElement,
-    ObjectFit, Overflow, ParentElement, Render, StatefulInteractiveElement, Styled, StyledImage,
-    Window, div, hsla, img, px, svg, uniform_list,
+    App, Context, CursorStyle, FocusHandle, Image, ImageFormat, ImageSource, InteractiveElement,
+    IntoElement, KeyDownEvent, ObjectFit, Overflow, ParentElement, Render,
+    StatefulInteractiveElement, Styled, StyledImage, Window, div, hsla, img,
+    prelude::FluentBuilder, px, svg, uniform_list,
 };
 use objc2_app_kit::{
     NSPasteboard, NSPasteboardTypeFileURL, NSPasteboardTypePNG, NSPasteboardTypeString,
@@ -19,9 +20,11 @@ use crate::models::{ClipboardEntry, ClipboardItem, History};
 
 pub struct View {
     snapshot: Vec<ClipboardEntry>,
+    cur_idx: usize,
+    focus_handle: FocusHandle,
 }
 
-fn render_item(mut item: ClipboardItem) -> impl IntoElement {
+fn render_item(item: ClipboardItem) -> impl IntoElement {
     match item {
         ClipboardItem::Text(text) => {
             let text = if text.len() > 25 {
@@ -106,15 +109,29 @@ fn copy_entry_to_clipboard(entry: ClipboardEntry) {
 }
 
 impl View {
-    pub fn new() -> Self {
+    pub fn new(cx: &mut App) -> Self {
         Self {
             snapshot: Vec::new(),
+            cur_idx: 0,
+            focus_handle: cx.focus_handle(),
         }
+    }
+
+    fn move_down(&mut self) {
+        self.cur_idx = (self.cur_idx + 1) % self.snapshot.len();
+    }
+
+    fn move_up(&mut self) {
+        self.cur_idx = (self.cur_idx + self.snapshot.len() - 1) % self.snapshot.len();
     }
 
     pub fn update_snapshot(&mut self, history: History) {
         let locked = history.lock().unwrap();
         self.snapshot = locked.clone();
+    }
+
+    pub fn focus_handle(&self) -> FocusHandle {
+        self.focus_handle.clone()
     }
 }
 
@@ -122,12 +139,34 @@ impl Render for View {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         div()
             .flex_col()
+            .track_focus(&self.focus_handle())
             .gap_2()
             .h_full()
             .w_full()
             .text_color(hsla(0.0, 0.0, 0.9, 1.0))
             .bg(hsla(0.0, 0.0, 0.08, 0.5))
             .text_xs()
+            .on_key_down(cx.listener(|this, event: &KeyDownEvent, window, cx| {
+                match event.keystroke.key.as_str() {
+                    "j" => {
+                        this.move_down();
+                        cx.notify();
+                    }
+                    "k" => {
+                        this.move_up();
+                        cx.notify();
+                    }
+                    "enter" => {
+                        let entry = this.snapshot.get(this.cur_idx).unwrap();
+                        copy_entry_to_clipboard(entry.clone());
+                        window.remove_window();
+                    }
+                    "escape" => {
+                        window.remove_window();
+                    }
+                    _ => {}
+                }
+            }))
             .p_2()
             .id("history")
             .overflow_y_scroll()
@@ -139,6 +178,9 @@ impl Render for View {
                     .px_2()
                     .flex_col()
                     .w_full()
+                    .when(self.cur_idx == i, |style| {
+                        style.bg(hsla(0.0, 0.0, 0.6, 0.1))
+                    })
                     .id(("outer", i))
                     .on_click(cx.listener(move |this, _event, window, _cx| {
                         let entry = this.snapshot.get(i).unwrap();
