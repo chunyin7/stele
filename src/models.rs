@@ -10,8 +10,14 @@ use gpui::{ImageFormat, http_client::Url};
 pub enum ClipboardItem {
     Text(String),
     Url(Url),
-    File(PathBuf),
-    Image { bytes: Vec<u8>, format: ImageFormat },
+    File {
+        path: PathBuf,
+        icon_bytes: Option<Vec<u8>>,
+    },
+    Image {
+        bytes: Vec<u8>,
+        format: ImageFormat,
+    },
 }
 
 #[derive(Clone)]

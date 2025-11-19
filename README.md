@@ -25,7 +25,7 @@ when the binary is running:
 
 ## todo
 
-- [ ] add image support
+- [x] add image support
 - [ ] add config settings
 - [ ] hide dock icon
 - [ ] add tray icon

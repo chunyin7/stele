@@ -3,14 +3,44 @@ use chrono::Local;
 use dispatch2::run_on_main;
 use gpui::{App, AsyncApp, ImageFormat, http_client::Url};
 use objc2_app_kit::{
-    NSPasteboard, NSPasteboardType, NSPasteboardTypeFileURL, NSPasteboardTypePNG,
-    NSPasteboardTypeString, NSPasteboardTypeTIFF, NSPasteboardTypeURL,
+    NSBitmapImageFileType, NSBitmapImageRep, NSPasteboard, NSPasteboardType,
+    NSPasteboardTypeFileURL, NSPasteboardTypePNG, NSPasteboardTypeString, NSPasteboardTypeTIFF,
+    NSPasteboardTypeURL, NSWorkspace,
 };
-use objc2_foundation::NSURL;
+use objc2_foundation::{NSDictionary, NSSize, NSString, NSURL};
 use std::{path::PathBuf, time::Duration};
 
 const NSPASTEBOARD_TYPE_JPEG: &str = "public.jpeg";
 const NSPASTEBOARD_TYPE_GIF: &str = "com.compuserve.gif";
+
+fn get_file_icon(path: PathBuf) -> Option<Vec<u8>> {
+    run_on_main(move |_mtm| {
+        let workspace = unsafe { NSWorkspace::sharedWorkspace() };
+        let ns_image =
+            unsafe { workspace.iconForFile(&NSString::from_str(path.to_str().unwrap())) };
+        let target_size = NSSize::new(48.0, 48.0);
+        unsafe { ns_image.setSize(target_size) };
+
+        if let Some(tiff_data) = unsafe { ns_image.TIFFRepresentation() } {
+            if let Some(bitmap) = unsafe { NSBitmapImageRep::imageRepWithData(&tiff_data) } {
+                if let Some(png_data) = unsafe {
+                    bitmap.representationUsingType_properties(
+                        NSBitmapImageFileType::PNG,
+                        &NSDictionary::new(),
+                    )
+                } {
+                    Some(png_data.to_vec())
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    })
+}
 
 fn get_pasteboard_change_count() -> isize {
     run_on_main(|_mtm| unsafe { NSPasteboard::generalPasteboard().changeCount() })
@@ -83,9 +113,11 @@ fn get_pasteboard_items() -> Option<Vec<ClipboardItem>> {
                                 {
                                     if let Some(url) = unsafe { NSURL::URLWithString(&ns_string) } {
                                         if let Some(path) = unsafe { url.path() } {
-                                            Some(ClipboardItem::File(PathBuf::from(
-                                                path.to_string(),
-                                            )))
+                                            let path_buf = PathBuf::from(path.to_string());
+                                            Some(ClipboardItem::File {
+                                                path: path_buf.clone(),
+                                                icon_bytes: get_file_icon(path_buf),
+                                            })
                                         } else {
                                             None
                                         }

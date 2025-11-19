@@ -2,14 +2,18 @@ use dispatch2::run_on_main;
 use gpui::{
     Context, CursorStyle, Image, ImageFormat, ImageSource, InteractiveElement, IntoElement,
     ObjectFit, Overflow, ParentElement, Render, StatefulInteractiveElement, Styled, StyledImage,
-    Window, div, hsla, img, px, uniform_list,
+    Window, div, hsla, img, px, svg, uniform_list,
 };
 use objc2_app_kit::{
     NSPasteboard, NSPasteboardTypeFileURL, NSPasteboardTypePNG, NSPasteboardTypeString,
-    NSPasteboardTypeTIFF, NSPasteboardTypeURL,
+    NSPasteboardTypeTIFF, NSPasteboardTypeURL, NSWorkspace,
 };
 use objc2_foundation::{NSData, NSString};
-use std::{ops::Range, sync::Arc};
+use std::{
+    ops::Range,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use crate::models::{ClipboardEntry, ClipboardItem, History};
 
@@ -17,7 +21,7 @@ pub struct View {
     snapshot: Vec<ClipboardEntry>,
 }
 
-fn render_item(item: ClipboardItem) -> impl IntoElement {
+fn render_item(mut item: ClipboardItem) -> impl IntoElement {
     match item {
         ClipboardItem::Text(text) => {
             let text = if text.len() > 25 {
@@ -42,9 +46,18 @@ fn render_item(item: ClipboardItem) -> impl IntoElement {
                 .text_decoration_color(hsla(240.0, 0.93, 0.83, 1.0))
                 .child(url_string)
         }
-        ClipboardItem::File(path) => {
-            // todo
-            div()
+        ClipboardItem::File { path, icon_bytes } => {
+            if let Some(icon_bytes) = icon_bytes {
+                let image = Arc::new(Image::from_bytes(ImageFormat::Png, icon_bytes));
+                div().child(img(image).size_12())
+            } else {
+                let filename = path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("Unknown")
+                    .to_string();
+                div().child(filename)
+            }
         }
         ClipboardItem::Image { bytes, format } => {
             let image = Arc::new(Image::from_bytes(format, bytes));
@@ -84,7 +97,7 @@ fn copy_entry_to_clipboard(entry: ClipboardEntry) {
                     unsafe { pasteboard.setData_forType(Some(&nsdata), nsimagetype) };
                 }
             }
-            ClipboardItem::File(path) => {
+            ClipboardItem::File { path, icon_bytes } => {
                 let nsstring = NSString::from_str(path.to_str().unwrap());
                 unsafe { pasteboard.setString_forType(&nsstring, NSPasteboardTypeFileURL) };
             }
