@@ -1,8 +1,8 @@
 use dispatch2::run_on_main;
 use gpui::{
     Context, CursorStyle, Image, ImageFormat, ImageSource, InteractiveElement, IntoElement,
-    ObjectFit, ParentElement, Render, StatefulInteractiveElement, Styled, StyledImage, Window, div,
-    hsla, img, px, uniform_list,
+    ObjectFit, Overflow, ParentElement, Render, StatefulInteractiveElement, Styled, StyledImage,
+    Window, div, hsla, img, px, uniform_list,
 };
 use objc2_app_kit::{
     NSPasteboard, NSPasteboardTypeFileURL, NSPasteboardTypePNG, NSPasteboardTypeString,
@@ -116,51 +116,34 @@ impl Render for View {
             .bg(hsla(0.0, 0.0, 0.08, 0.5))
             .text_xs()
             .p_2()
-            .child(
-                uniform_list(
-                    "history",
-                    self.snapshot.len(),
-                    cx.processor(|this, range: Range<usize>, _window, cx| {
-                        range
-                            .map(|i| {
-                                let entry = this.snapshot.get(i).unwrap();
-                                let items = entry.items.clone();
-                                let timestamp =
-                                    entry.timestamp.format("%Y-%m-%d %H:%M:%S").to_string();
-                                div()
-                                    .py_1()
-                                    .px_2()
-                                    .flex_col()
-                                    .w_full()
-                                    .id(("outer", i))
-                                    .on_click(cx.listener(move |this, _event, window, _cx| {
-                                        let entry = this.snapshot.get(i).unwrap();
-                                        copy_entry_to_clipboard(entry.clone());
-                                        window.remove_window();
-                                    }))
-                                    .rounded_lg()
-                                    .hover(|style| {
-                                        style
-                                            .bg(hsla(0.0, 0.0, 0.6, 0.1))
-                                            .cursor(CursorStyle::PointingHand)
-                                    })
-                                    .child(
-                                        div()
-                                            .flex_col()
-                                            .children(
-                                                items.iter().map(|item| render_item(item.clone())),
-                                            )
-                                            .child(
-                                                div()
-                                                    .text_color(hsla(0.0, 0.0, 0.9, 0.8))
-                                                    .child(timestamp),
-                                            ),
-                                    )
-                            })
-                            .collect()
-                    }),
-                )
-                .h_full(),
-            )
+            .id("history")
+            .overflow_y_scroll()
+            .children(self.snapshot.iter().enumerate().map(|(i, entry)| {
+                let items = entry.items.clone();
+                let timestamp = entry.timestamp.format("%Y-%m-%d %H:%M:%S").to_string();
+                div()
+                    .py_1()
+                    .px_2()
+                    .flex_col()
+                    .w_full()
+                    .id(("outer", i))
+                    .on_click(cx.listener(move |this, _event, window, _cx| {
+                        let entry = this.snapshot.get(i).unwrap();
+                        copy_entry_to_clipboard(entry.clone());
+                        window.remove_window();
+                    }))
+                    .rounded_lg()
+                    .hover(|style| {
+                        style
+                            .bg(hsla(0.0, 0.0, 0.6, 0.1))
+                            .cursor(CursorStyle::PointingHand)
+                    })
+                    .child(
+                        div()
+                            .flex_col()
+                            .children(items.iter().map(|item| render_item(item.clone())))
+                            .child(div().text_color(hsla(0.0, 0.0, 0.9, 0.8)).child(timestamp)),
+                    )
+            }))
     }
 }
