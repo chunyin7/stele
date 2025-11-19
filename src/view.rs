@@ -1,8 +1,8 @@
 use dispatch2::run_on_main;
 use gpui::{
     Context, CursorStyle, Image, ImageFormat, ImageSource, InteractiveElement, IntoElement,
-    ParentElement, Render, StatefulInteractiveElement, Styled, Window, div, hsla, img,
-    uniform_list,
+    ObjectFit, ParentElement, Render, StatefulInteractiveElement, Styled, StyledImage, Window, div,
+    hsla, img, px, uniform_list,
 };
 use objc2_app_kit::{
     NSPasteboard, NSPasteboardTypeFileURL, NSPasteboardTypePNG, NSPasteboardTypeString,
@@ -48,7 +48,12 @@ fn render_item(item: ClipboardItem) -> impl IntoElement {
         }
         ClipboardItem::Image { bytes, format } => {
             let image = Arc::new(Image::from_bytes(format, bytes));
-            div().child(img(image).size_32())
+            div().child(
+                img(image)
+                    .max_h_32()
+                    .max_w(px(180.0))
+                    .object_fit(ObjectFit::Contain),
+            )
         }
     }
 }
