@@ -1,7 +1,7 @@
 use dispatch2::run_on_main;
 use gpui::{
     App, Context, CursorStyle, FocusHandle, Image, ImageFormat, ImageSource, InteractiveElement,
-    IntoElement, KeyDownEvent, ObjectFit, Overflow, ParentElement, Render,
+    IntoElement, KeyDownEvent, ObjectFit, Overflow, ParentElement, Render, ScrollHandle,
     StatefulInteractiveElement, Styled, StyledImage, Window, div, hsla, img,
     prelude::FluentBuilder, px, svg, uniform_list,
 };
@@ -22,6 +22,7 @@ pub struct View {
     snapshot: Vec<ClipboardEntry>,
     cur_idx: usize,
     focus_handle: FocusHandle,
+    scroll_handle: ScrollHandle,
 }
 
 fn render_item(item: ClipboardItem) -> impl IntoElement {
@@ -114,6 +115,7 @@ impl View {
             snapshot: Vec::new(),
             cur_idx: 0,
             focus_handle: cx.focus_handle(),
+            scroll_handle: ScrollHandle::new(),
         }
     }
 
@@ -150,10 +152,12 @@ impl Render for View {
                 match event.keystroke.key.as_str() {
                     "j" => {
                         this.move_down();
+                        this.scroll_handle.scroll_to_item(this.cur_idx);
                         cx.notify();
                     }
                     "k" => {
                         this.move_up();
+                        this.scroll_handle.scroll_to_item(this.cur_idx);
                         cx.notify();
                     }
                     "enter" => {
@@ -170,6 +174,7 @@ impl Render for View {
             .p_2()
             .id("history")
             .overflow_y_scroll()
+            .track_scroll(&self.scroll_handle.clone())
             .children(self.snapshot.iter().enumerate().map(|(i, entry)| {
                 let items = entry.items.clone();
                 let timestamp = entry.timestamp.format("%Y-%m-%d %H:%M:%S").to_string();
