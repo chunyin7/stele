@@ -28,5 +28,5 @@ when the binary is running:
 - [x] add image support
 - [ ] add config settings
 - [ ] hide dock icon
-- [ ] add tray icon
+- [x] add tray icon
 - [x] add keyboard controls

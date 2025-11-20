@@ -106,7 +106,6 @@ fn copy_entry_to_clipboard(entry: ClipboardEntry) {
                     Ok(url) => url,
                     Err(_) => return,
                 };
-                println!("copy url: {}", url.as_str());
                 let nsstring = NSString::from_str(url.as_str());
                 unsafe { pasteboard.setString_forType(&nsstring, NSPasteboardTypeFileURL) };
             }
