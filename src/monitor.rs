@@ -46,14 +46,6 @@ fn get_pasteboard_change_count() -> isize {
     run_on_main(|_mtm| unsafe { NSPasteboard::generalPasteboard().changeCount() })
 }
 
-fn get_pasteboard_content() -> Option<String> {
-    run_on_main(|_mtm| unsafe {
-        NSPasteboard::generalPasteboard()
-            .stringForType(NSPasteboardTypeString)
-            .map(|ns_string| ns_string.to_string())
-    })
-}
-
 fn get_pasteboard_items() -> Option<Vec<ClipboardItem>> {
     run_on_main(|_mtm| {
         let items = unsafe { NSPasteboard::generalPasteboard().pasteboardItems() };

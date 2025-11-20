@@ -13,3 +13,4 @@ objc2-app-kit = { version = "=0.3.1", features = [
 ] }
 objc2-foundation = { version = "=0.3.1" }
 dispatch2 = { version = "0.3", default-features = false, features = ["alloc", "objc2"] }
+url = "2.5.7"

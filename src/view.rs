@@ -102,7 +102,12 @@ fn copy_entry_to_clipboard(entry: ClipboardEntry) {
                 }
             }
             ClipboardItem::File { path, icon_bytes } => {
-                let nsstring = NSString::from_str(path.to_str().unwrap());
+                let url = match url::Url::from_file_path(path) {
+                    Ok(url) => url,
+                    Err(_) => return,
+                };
+                println!("copy url: {}", url.as_str());
+                let nsstring = NSString::from_str(url.as_str());
                 unsafe { pasteboard.setString_forType(&nsstring, NSPasteboardTypeFileURL) };
             }
         });
