@@ -1,0 +1,55 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-action@stable
+
+      - name: Install create-dmg
+        run: brew install create-dmg
+
+      - name: Build release binary
+        run: cargo build --release
+
+      - name: Create app bundle
+        run: |
+          APP_NAME="stele"
+          APP_DIR="target/release/${APP_NAME}.app"
+
+          mkdir -p "${APP_DIR}/Contents/MacOS"
+          mkdir -p "${APP_DIR}/Contents/Resources"
+
+          cp "target/release/stele" "${APP_DIR}/Contents/MacOS/stele"
+          cp "Info.plist" "${APP_DIR}/Contents/Info.plist"
+
+          if [ -f "assets/icon.icns" ]; then
+            cp "assets/icon.icns" "${APP_DIR}/Contents/Resources/icon.icns"
+          fi
+
+      - name: Create DMG
+        run: |
+          create-dmg \
+            --volname "Stele" \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon-size 100 \
+            --icon "stele.app" 150 190 \
+            --hide-extension "stele.app" \
+            --app-drop-link 450 185 \
+            "Stele-${{ github.ref_name }}.dmg" \
+            "target/release/stele.app"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Stele-${{ github.ref_name }}.dmg
+          generate_release_notes: true
