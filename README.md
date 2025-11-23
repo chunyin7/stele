@@ -30,3 +30,4 @@ when the binary is running:
 - [ ] hide dock icon
 - [x] add tray icon
 - [x] add keyboard controls
+- [x] fix stutter on panel hide

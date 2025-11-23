@@ -170,6 +170,7 @@ impl Render for View {
                         window.remove_window();
                     }
                     "escape" => {
+                        cx.hide();
                         window.remove_window();
                     }
                     _ => {}

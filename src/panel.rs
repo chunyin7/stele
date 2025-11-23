@@ -84,9 +84,10 @@ impl Panel {
     }
 
     pub fn hide(&mut self, cx: &mut App) {
-        let _ = self
-            .window
-            .update(cx, |_view, window, _cx| window.remove_window());
+        let _ = self.window.update(cx, |_view, window, cx| {
+            cx.hide();
+            window.remove_window();
+        });
     }
 
     pub fn show(&mut self, cx: &mut App) {
