@@ -1,6 +1,6 @@
 <h1 align="center">
-    <img src="assets/icon.png" width="128" alt="icon" />
-  stele
+    <img src="assets/icon.png" width="128" alt="icon" /><br />
+    stele
 </h1>
 
 <p align="center">
