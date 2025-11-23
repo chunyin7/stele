@@ -8,6 +8,8 @@ use global_hotkey::{
     hotkey::{Code, HotKey, Modifiers},
 };
 use gpui::{App, AppContext, Application, AsyncApp};
+use objc2_app_kit::{NSApplication, NSApplicationActivationPolicy};
+use objc2_foundation::MainThreadMarker;
 use tray_icon::{
     Icon, TrayIconBuilder, TrayIconEvent,
     menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem},
@@ -22,6 +24,12 @@ mod view;
 
 fn main() {
     Application::new().run(|cx: &mut App| {
+        // Set as accessory app (no dock icon) after gpui initializes
+        if let Some(mtm) = MainThreadMarker::new() {
+            let app = NSApplication::sharedApplication(mtm);
+            app.setActivationPolicy(NSApplicationActivationPolicy::Accessory);
+        }
+
         let history: History = Arc::new(Mutex::new(Vec::new()));
         let panel = cx.new(|cx| Panel::new(cx, history.clone()));
 

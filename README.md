@@ -1,8 +1,15 @@
-# stele
+<p align="center">
+  <img src="assets/icon.png" width="128" />
+</p>
 
-stele is a lightweight macos gui clipboard utility built with rust and [gpui](https://www.gpui.rs/)
+<h1 align="center">stele</h1>
 
-this is built for personal use and exploratory purposes - no guarantees can be made about the code quality
+<p align="center">
+    stele is a lightweight macos gui clipboard utility built with rust and [gpui](https://www.gpui.rs/)
+</p>
+
+> [!NOTE]
+> this is built for personal use and exploratory purposes - no guarantees can be made about the code quality
 
 ## quick start
 
@@ -13,21 +20,22 @@ rustup default stable                 # or nightly if needed
 # 2. run the app in debug mode
 cargo run
 
-# 3. build an optimized binary
-cargo run --release
+# 3. build the macos bundle
+./build.sh
 ```
 
 when the binary is running:
 
 1. copy any text as usual (`⌘c`).
 2. hit `⌘⇧v` to toggle the stele panel.
-3. click an entry to copy it back to the clipboard—the panel closes automatically.
+2. navigate using keyboard (j/k) or mouse
+3. click an entry to copy it back to the clipboard or press enter when using keyboard controls to select - the panel closes automatically
 
 ## todo
 
 - [x] add image support
 - [ ] add config settings
-- [ ] hide dock icon
+- [x] hide dock icon
 - [x] add tray icon
 - [x] add keyboard controls
 - [x] fix stutter on panel hide
