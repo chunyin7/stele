@@ -1,11 +1,10 @@
-<p align="center">
-  <img src="assets/icon.png" width="128" />
-</p>
+<h1 align="center">
+    <img src="assets/icon.png" width="128" alt="icon" />
+  stele
+</h1>
 
-<h1 align="center">stele</h1>
-
 <p align="center">
-    stele is a lightweight macos gui clipboard utility built with rust and [gpui](https://www.gpui.rs/)
+    stele is a lightweight macos gui clipboard utility built with rust and <a href="https://gpui.rs/">gpui</a>
 </p>
 
 > [!NOTE]
