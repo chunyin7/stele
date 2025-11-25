@@ -51,6 +51,7 @@ fn get_pasteboard_items() -> Option<Vec<ClipboardItem>> {
         let items = unsafe { NSPasteboard::generalPasteboard().pasteboardItems() };
 
         if let Some(items) = items {
+            println!("items len: {}", items.len());
             let collected = items
                 .iter()
                 .flat_map(|item| {
@@ -59,6 +60,7 @@ fn get_pasteboard_items() -> Option<Vec<ClipboardItem>> {
                         .filter_map(move |t| {
                             let t: &NSPasteboardType = t.as_ref();
                             let t_string = t.to_string();
+                            println!("t_string: {}", t_string);
                             if unsafe { t == NSPasteboardTypeString } {
                                 if let Some(ns_string) =
                                     unsafe { item.stringForType(NSPasteboardTypeString) }
@@ -181,9 +183,19 @@ impl ClipboardMonitor {
                             .await;
                         let current_change_count = get_pasteboard_change_count();
                         if current_change_count != last_change_count {
-                            if let Some(items) = get_pasteboard_items()
-                                && !items.is_empty()
-                            {
+                            let mut items = get_pasteboard_items();
+                            let mut i = 0;
+                            // retry as expensive operations may occur between change count increment and clipboard data write
+                            let retry_delays = [10, 50, 100, 150, 200, 300, 400];
+                            while items.map(|items| items.is_empty()).unwrap_or(false) && i < 7 {
+                                cx.background_executor()
+                                    .timer(Duration::from_millis(retry_delays[i]))
+                                    .await;
+                                items = get_pasteboard_items();
+                                i += 1;
+                            }
+
+                            if let Some(items) = get_pasteboard_items() {
                                 let mut history = history.lock().unwrap();
                                 if let Some(i) =
                                     history.iter().position(|entry| entry.items == items)

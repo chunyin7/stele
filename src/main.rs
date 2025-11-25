@@ -55,7 +55,7 @@ fn main() {
         let tray_menu = Menu::new();
         tray_menu
             .append_items(&[
-                &MenuItem::with_id("name", "stele v0.1.0", false, None),
+                &MenuItem::with_id("name", "stele v0.1.2", false, None),
                 &PredefinedMenuItem::separator(),
                 &MenuItem::with_id("quit", "Quit", true, None),
             ])
