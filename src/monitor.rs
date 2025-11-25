@@ -10,8 +10,8 @@ use objc2_app_kit::{
 use objc2_foundation::{NSDictionary, NSSize, NSString, NSURL};
 use std::{path::PathBuf, time::Duration};
 
-const NSPASTEBOARD_TYPE_JPEG: &str = "public.jpeg";
-const NSPASTEBOARD_TYPE_GIF: &str = "com.compuserve.gif";
+pub const NSPASTEBOARD_TYPE_JPEG: &str = "public.jpeg";
+pub const NSPASTEBOARD_TYPE_GIF: &str = "com.compuserve.gif";
 
 fn get_file_icon(path: PathBuf) -> Option<Vec<u8>> {
     run_on_main(move |_mtm| {
@@ -58,6 +58,7 @@ fn get_pasteboard_items() -> Option<Vec<ClipboardItem>> {
                         .iter()
                         .filter_map(move |t| {
                             let t: &NSPasteboardType = t.as_ref();
+                            let t_string = t.to_string();
                             if unsafe { t == NSPasteboardTypeString } {
                                 if let Some(ns_string) =
                                     unsafe { item.stringForType(NSPasteboardTypeString) }
@@ -119,6 +120,32 @@ fn get_pasteboard_items() -> Option<Vec<ClipboardItem>> {
                                 } else {
                                     None
                                 }
+                            } else if t_string == NSPASTEBOARD_TYPE_JPEG {
+                                if let Some(ns_data) = unsafe {
+                                    item.dataForType(
+                                        NSString::from_str(NSPASTEBOARD_TYPE_JPEG).as_ref(),
+                                    )
+                                } {
+                                    Some(ClipboardItem::Image {
+                                        bytes: ns_data.to_vec(),
+                                        format: ImageFormat::Jpeg,
+                                    })
+                                } else {
+                                    None
+                                }
+                            } else if t_string == NSPASTEBOARD_TYPE_GIF {
+                                if let Some(ns_data) = unsafe {
+                                    item.dataForType(
+                                        NSString::from_str(NSPASTEBOARD_TYPE_GIF).as_ref(),
+                                    )
+                                } {
+                                    Some(ClipboardItem::Image {
+                                        bytes: ns_data.to_vec(),
+                                        format: ImageFormat::Gif,
+                                    })
+                                } else {
+                                    None
+                                }
                             } else {
                                 None
                             }
@@ -154,7 +181,9 @@ impl ClipboardMonitor {
                             .await;
                         let current_change_count = get_pasteboard_change_count();
                         if current_change_count != last_change_count {
-                            if let Some(items) = get_pasteboard_items() {
+                            if let Some(items) = get_pasteboard_items()
+                                && !items.is_empty()
+                            {
                                 let mut history = history.lock().unwrap();
                                 if let Some(i) =
                                     history.iter().position(|entry| entry.items == items)

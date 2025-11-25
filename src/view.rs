@@ -16,7 +16,10 @@ use std::{
     sync::Arc,
 };
 
-use crate::models::{ClipboardEntry, ClipboardItem, History};
+use crate::{
+    models::{ClipboardEntry, ClipboardItem, History},
+    monitor::{NSPASTEBOARD_TYPE_GIF, NSPASTEBOARD_TYPE_JPEG},
+};
 
 pub struct View {
     snapshot: Vec<ClipboardEntry>,
@@ -92,9 +95,13 @@ fn copy_entry_to_clipboard(entry: ClipboardEntry) {
             }
             ClipboardItem::Image { bytes, format } => {
                 let nsdata = NSData::from_vec(bytes.clone());
+                let ns_jpeg = NSString::from_str(NSPASTEBOARD_TYPE_JPEG);
+                let ns_gif = NSString::from_str(NSPASTEBOARD_TYPE_GIF);
                 let nsimagetype = match format {
                     ImageFormat::Png => Some(unsafe { NSPasteboardTypePNG }),
                     ImageFormat::Tiff => Some(unsafe { NSPasteboardTypeTIFF }),
+                    ImageFormat::Jpeg => Some(ns_jpeg.as_ref()),
+                    ImageFormat::Gif => Some(ns_gif.as_ref()),
                     _ => None,
                 };
                 if let Some(nsimagetype) = nsimagetype {
